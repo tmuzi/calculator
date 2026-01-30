@@ -7,6 +7,7 @@
 
 bool init();
 bool key_events();
+void draw();
 void close();
 
 /* Constants */
@@ -19,16 +20,29 @@ constexpr int kScreenWidth{ 320 };
 //The window we'll be rendering to
 SDL_Window* gWindow{ nullptr };
 
+//The surface contained by the window
+SDL_Surface* gScreenSurface{ nullptr };
+
 int main()
 {
 	if (!init())
 		return 1;
 
-	while (key_events());
+	while (key_events())
+		draw();
 
 	close();
 
 	return 0;
+}
+
+void draw()
+{
+	//Fill the surface white
+	SDL_FillSurfaceRect(gScreenSurface, nullptr, SDL_MapSurfaceRGB(gScreenSurface, 0xFF, 0xFF, 0xFF));
+
+	//Update the surface
+	SDL_UpdateWindowSurface(gWindow);
 }
 
 bool init()
@@ -48,6 +62,8 @@ bool init()
 
 		return false;
 	}
+	else
+		gScreenSurface = SDL_GetWindowSurface(gWindow); //Get window surface
 
 	return true;
 }
@@ -71,6 +87,7 @@ void close()
 	//Destroy window
 	SDL_DestroyWindow( gWindow );
 	gWindow = nullptr;
+	gScreenSurface = nullptr;
 
 	//Quit SDL subsystems
 	SDL_Quit();
