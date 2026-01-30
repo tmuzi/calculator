@@ -7,6 +7,7 @@
 
 bool init();
 bool key_events();
+void close();
 
 /* Constants */
 //Screen dimension constants
@@ -25,7 +26,7 @@ int main()
 
 	while (key_events());
 
-	SDL_Quit();
+	close();
 
 	return 0;
 }
@@ -62,4 +63,15 @@ bool key_events()
 				return false;
 	}
 	return true;
+}
+
+void close()
+{
+
+	//Destroy window
+	SDL_DestroyWindow( gWindow );
+	gWindow = nullptr;
+
+	//Quit SDL subsystems
+	SDL_Quit();
 }
