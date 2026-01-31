@@ -77,10 +77,30 @@ void draw()
 	float boardHeight { kScreenHeight * 0.75f };
 	float boardWidth { kScreenWidth };
 
+	float buttonHeight { boardHeight * 0.1667f };
+	float buttonWidth { boardWidth * 0.25f };
+
 	SDL_FRect boardRect { startX, startY, boardWidth, boardHeight };
 
-	SDL_SetRenderDrawColor(gRenderer, 0xA9, 0xA9, 0xA9, 0xFF); // dark gray
+	SDL_SetRenderDrawColor(gRenderer, 0xA9, 0xA9, 0xA9, 0xFF); // dark gray (board background)
 	SDL_RenderFillRect(gRenderer, &boardRect);
+
+	//buttons
+
+	SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0xFF, 0xFF);
+
+	SDL_FRect buttonRect { startX, startY, buttonWidth - 1.0f, buttonHeight - 1.0f }; // button with gap
+
+	for (int row = 1; row < 6; row++) // start from 1 to skip first row to see color diff
+	{
+		buttonRect.y = startY + buttonHeight * row;
+		for (int col = 0; col < 4; col++)
+		{
+			buttonRect.x = startX + buttonWidth * col;
+			SDL_RenderFillRect(gRenderer, &buttonRect);
+		}
+		buttonRect.x = startX;
+	}
 
 	SDL_RenderPresent(gRenderer);
 }
