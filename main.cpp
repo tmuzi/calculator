@@ -3,10 +3,15 @@
 #include <iostream>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
+#include <string>
 
 bool init();
+
 bool key_events();
+
 void draw();
+void drawLayout();
+
 void close();
 
 /* Constants */
@@ -42,7 +47,13 @@ void draw()
 	SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
 	SDL_RenderClear(gRenderer);
 
+	drawLayout();
 
+	SDL_RenderPresent(gRenderer);
+}
+
+void drawLayout()
+{
 	/*
 		layout:
 
@@ -73,8 +84,8 @@ void draw()
 
 	//	write to screen
 	SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0x00, 0xFF);
-	SDL_SetRenderScale(gRenderer, 3.0f, 3.0f);
-    SDL_RenderDebugText(gRenderer, 10, 20, "Hello world!");
+	SDL_SetRenderScale(gRenderer, 3.5f, 3.5f);
+    SDL_RenderDebugText(gRenderer, 10, 20, "0000000000");
 
 	SDL_SetRenderScale(gRenderer, 1.0f, 1.0f); // reset scale
 	//board
@@ -97,18 +108,32 @@ void draw()
 
 	SDL_FRect buttonRect { startX, startY, buttonWidth - 1.0f, buttonHeight - 1.0f }; // button with gap
 
-	for (int row = 1; row < 6; row++) // start from 1 to skip first row to see color diff
+	for (int row = 0; row < 6; row++)
 	{
 		buttonRect.y = startY + buttonHeight * row;
 		for (int col = 0; col < 4; col++)
 		{
 			buttonRect.x = startX + buttonWidth * col;
+
+			if (row == 0) // top row different color
+				 SDL_SetRenderDrawColor(gRenderer, 0xA9, 0xA9, 0xA9, 0xFF); // dark gray (board background)
+			else
+				SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0xFF, 0xFF);
+
 			SDL_RenderFillRect(gRenderer, &buttonRect);
+
+			//	write to button
+			SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0x00, 0xFF); // dark gray
+			//SDL_SetRenderScale(gRenderer, 3.5f, 3.5f);
+			SDL_RenderDebugText(
+				gRenderer,
+				(buttonRect.x + buttonWidth / 2) - 4,
+				(buttonRect.y + buttonHeight / 2) - 4,
+				std::to_string((row * (4)) + col + 1).c_str()
+			); // default char dim 8x8 hence -4 to center
 		}
 		buttonRect.x = startX;
 	}
-
-	SDL_RenderPresent(gRenderer);
 }
 
 bool init()
