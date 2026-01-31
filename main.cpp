@@ -3,7 +3,6 @@
 #include <iostream>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
-#include <string>
 
 bool init();
 bool key_events();
@@ -22,6 +21,7 @@ SDL_Window* gWindow{ nullptr };
 
 //The surface contained by the window
 SDL_Surface* gScreenSurface{ nullptr };
+SDL_Renderer* gRenderer{ nullptr };
 
 int main()
 {
@@ -39,10 +39,50 @@ int main()
 void draw()
 {
 	//Fill the surface white
-	SDL_FillSurfaceRect(gScreenSurface, nullptr, SDL_MapSurfaceRGB(gScreenSurface, 0xFF, 0xFF, 0xFF));
+	SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
+	SDL_RenderClear(gRenderer);
 
-	//Update the surface
-	SDL_UpdateWindowSurface(gWindow);
+
+	/*
+		layout:
+
+		screen 25%:
+		-------------
+		|			|
+		|			|
+		board 75%:
+		|			|
+		|			|
+		|			|
+		|			|
+		|			|
+		|			|
+		-------------
+	*/
+	//screen
+	float startX { 0 };
+	float startY { 0 };
+
+	float screenHeight { kScreenHeight * 0.25f };
+	float screenWidth { kScreenWidth };
+
+	SDL_FRect screenRect { startX, startY, screenWidth, screenHeight };
+
+	SDL_SetRenderDrawColor(gRenderer, 0xD3, 0xD3, 0xD3, 0xFF); // light gray
+	SDL_RenderFillRect(gRenderer, &screenRect);
+
+	//board
+	startY += screenHeight;
+
+	float boardHeight { kScreenHeight * 0.75f };
+	float boardWidth { kScreenWidth };
+
+	SDL_FRect boardRect { startX, startY, boardWidth, boardHeight };
+
+	SDL_SetRenderDrawColor(gRenderer, 0xA9, 0xA9, 0xA9, 0xFF); // dark gray
+	SDL_RenderFillRect(gRenderer, &boardRect);
+
+	SDL_RenderPresent(gRenderer);
 }
 
 bool init()
@@ -56,14 +96,12 @@ bool init()
 		return false;
 	}
 	
-	if(gWindow = SDL_CreateWindow("Hello SDL3", kScreenWidth, kScreenHeight, 0); gWindow == nullptr)
+	if (!SDL_CreateWindowAndRenderer("Hello SDL3", kScreenWidth, kScreenHeight, 0, &gWindow, &gRenderer))
 	{
-		SDL_Log("Window could not be created! SDL error: %s\n", SDL_GetError());
+		SDL_Log("Window/Renderer could not be created! SDL error: %s\n", SDL_GetError());
 
 		return false;
-	}
-	else
-		gScreenSurface = SDL_GetWindowSurface(gWindow); //Get window surface
+    }
 
 	return true;
 }
