@@ -71,6 +71,12 @@ void draw()
 	SDL_SetRenderDrawColor(gRenderer, 0xD3, 0xD3, 0xD3, 0xFF); // light gray
 	SDL_RenderFillRect(gRenderer, &screenRect);
 
+	//	write to screen
+	SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0x00, 0xFF);
+	SDL_SetRenderScale(gRenderer, 3.0f, 3.0f);
+    SDL_RenderDebugText(gRenderer, 10, 20, "Hello world!");
+
+	SDL_SetRenderScale(gRenderer, 1.0f, 1.0f); // reset scale
 	//board
 	startY += screenHeight;
 
