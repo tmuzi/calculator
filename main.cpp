@@ -28,6 +28,24 @@ SDL_Window* gWindow{ nullptr };
 SDL_Surface* gScreenSurface{ nullptr };
 SDL_Renderer* gRenderer{ nullptr };
 
+// mouse pos
+float mouseX {}, mouseY {};
+bool mouseLClicked { false };
+
+std::string screenOutput { "00000" };
+
+// button layout
+int lWidth {4}, lHeight {6};
+
+int buttons [6][4] = {
+	{1, 2, 3, 4},
+	{5, 6, 7, 8},
+	{9, 10, 11, 12},
+	{13, 14, 15, 16},
+	{17, 18, 19, 20},
+	{21, 22, 33, 44}
+};
+
 int main()
 {
 	if (!init())
@@ -85,11 +103,12 @@ void drawLayout()
 	//	write to screen
 	SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0x00, 0xFF);
 	SDL_SetRenderScale(gRenderer, 3.5f, 3.5f);
-    SDL_RenderDebugText(gRenderer, 10, 20, "0000000000");
+    SDL_RenderDebugText(gRenderer, 10, 20, screenOutput.c_str());
 
 	SDL_SetRenderScale(gRenderer, 1.0f, 1.0f); // reset scale
 	//board
-	startY += screenHeight;
+	float boardTopY { startY = screenHeight };
+	float boardTopX { startX };
 
 	float boardHeight { kScreenHeight * 0.75f };
 	float boardWidth { kScreenWidth };
@@ -97,26 +116,23 @@ void drawLayout()
 	float buttonHeight { boardHeight * 0.1667f };
 	float buttonWidth { boardWidth * 0.25f };
 
-	SDL_FRect boardRect { startX, startY, boardWidth, boardHeight };
+	SDL_FRect boardRect { boardTopX, boardTopY, boardWidth, boardHeight };
 
 	SDL_SetRenderDrawColor(gRenderer, 0xA9, 0xA9, 0xA9, 0xFF); // dark gray (board background)
 	SDL_RenderFillRect(gRenderer, &boardRect);
 
 	//buttons
+	SDL_FRect buttonRect { boardTopY, boardTopY, buttonWidth - 1.0f, buttonHeight - 1.0f }; // button with gap
 
-	SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0xFF, 0xFF);
-
-	SDL_FRect buttonRect { startX, startY, buttonWidth - 1.0f, buttonHeight - 1.0f }; // button with gap
-
-	for (int row = 0; row < 6; row++)
+	for (int row = 0; row < lHeight; row++)
 	{
-		buttonRect.y = startY + buttonHeight * row;
-		for (int col = 0; col < 4; col++)
+		buttonRect.y = boardTopY + buttonHeight * row;
+		for (int col = 0; col < lWidth; col++)
 		{
-			buttonRect.x = startX + buttonWidth * col;
+			buttonRect.x = boardTopX + buttonWidth * col;
 
 			if (row == 0) // top row different color
-				 SDL_SetRenderDrawColor(gRenderer, 0xA9, 0xA9, 0xA9, 0xFF); // dark gray (board background)
+				SDL_SetRenderDrawColor(gRenderer, 0xA9, 0xA9, 0xA9, 0xFF); // dark gray (board background)
 			else
 				SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0xFF, 0xFF);
 
@@ -125,14 +141,33 @@ void drawLayout()
 			//	write to button
 			SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0x00, 0xFF); // dark gray
 			//SDL_SetRenderScale(gRenderer, 3.5f, 3.5f);
+
+			int gridIdx { (row * (4)) + col + 1 };
+
 			SDL_RenderDebugText(
 				gRenderer,
-				(buttonRect.x + buttonWidth / 2) - 4,
-				(buttonRect.y + buttonHeight / 2) - 4,
-				std::to_string((row * (4)) + col + 1).c_str()
+				buttonRect.x, // (buttonRect.x + buttonWidth / 2) - 4,
+				buttonRect.y, // (buttonRect.y + buttonHeight / 2) - 4,
+				std::to_string(buttons[row][col]).c_str() //std::to_string(gridIdx).c_str()
 			); // default char dim 8x8 hence -4 to center
+
 		}
-		buttonRect.x = startX;
+		buttonRect.x = boardTopX;
+	}
+
+	//test mouse co-ords
+	if (mouseLClicked) {
+		if (mouseX > 0 && mouseX < boardWidth)
+		{
+			if (mouseY > screenHeight && mouseY < kScreenHeight) // full screen width to bottom
+			{
+				int row { (int)((mouseY - (screenHeight)) / buttonHeight) };
+				int col { (int)(mouseX / buttonWidth) };
+
+				screenOutput = std::to_string(buttons[row][col]);
+			}
+		}
+		mouseLClicked = false;
 	}
 }
 
@@ -163,9 +198,17 @@ bool key_events()
 
 	while (SDL_PollEvent(&e))
 	{
-		switch (e.type)
+		switch (e.type) {
 			case SDL_EVENT_QUIT:
 				return false;
+			case SDL_EVENT_MOUSE_BUTTON_UP:
+				SDL_Log("Mouse Pressed");
+				if (e.button.button == SDL_BUTTON_LEFT)
+					{
+						SDL_GetMouseState(&mouseX, &mouseY);
+						mouseLClicked = true;
+					}
+		}
 	}
 	return true;
 }
