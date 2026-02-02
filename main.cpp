@@ -37,13 +37,13 @@ std::string screenOutput { "00000" };
 // button layout
 int lWidth {4}, lHeight {6};
 
-int buttons [6][4] = {
-	{1, 2, 3, 4},
-	{5, 6, 7, 8},
-	{9, 10, 11, 12},
-	{13, 14, 15, 16},
-	{17, 18, 19, 20},
-	{21, 22, 33, 44}
+std::string buttons [6][4] = {
+	{"", "", "", ""}, // empty top-left corner
+	{"AC", "(",")","/"},
+	{"7", "8", "9", "*"},
+	{"4", "5", "6", "-"},
+	{"1", "2", "3", "+"},
+	{".", "0", "DEL", "="}
 };
 
 int main()
@@ -144,11 +144,14 @@ void drawLayout()
 
 			int gridIdx { (row * (4)) + col + 1 };
 
+			std::string button { buttons[row][col] };
+			int buttonLen { (int)button.length() };
+
 			SDL_RenderDebugText(
 				gRenderer,
-				buttonRect.x, // (buttonRect.x + buttonWidth / 2) - 4,
-				buttonRect.y, // (buttonRect.y + buttonHeight / 2) - 4,
-				std::to_string(buttons[row][col]).c_str() //std::to_string(gridIdx).c_str()
+				(buttonRect.x + buttonWidth / 2) - (4 * buttonLen),
+				(buttonRect.y + buttonHeight / 2) - 4,
+				button.c_str()
 			); // default char dim 8x8 hence -4 to center
 
 		}
@@ -164,7 +167,7 @@ void drawLayout()
 				int row { (int)((mouseY - (screenHeight)) / buttonHeight) };
 				int col { (int)(mouseX / buttonWidth) };
 
-				screenOutput = std::to_string(buttons[row][col]);
+				screenOutput = buttons[row][col];
 			}
 		}
 		mouseLClicked = false;
@@ -181,8 +184,8 @@ bool init()
 
 		return false;
 	}
-	
-	if (!SDL_CreateWindowAndRenderer("Hello SDL3", kScreenWidth, kScreenHeight, 0, &gWindow, &gRenderer))
+
+	if (!SDL_CreateWindowAndRenderer("Calculator", kScreenWidth, kScreenHeight, 0, &gWindow, &gRenderer))
 	{
 		SDL_Log("Window/Renderer could not be created! SDL error: %s\n", SDL_GetError());
 
