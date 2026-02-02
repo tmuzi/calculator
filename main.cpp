@@ -5,6 +5,15 @@
 #include <SDL3/SDL_main.h>
 #include <string>
 
+/* Types */
+typedef struct {
+	const std::string label;
+	const int rgba[4];
+	bool special;
+	//SDL_FRect rect;
+} Button;
+
+/* Function Prototypes */
 bool init();
 
 bool key_events();
@@ -37,13 +46,13 @@ std::string screenOutput { "00000" };
 // button layout
 int lWidth {4}, lHeight {6};
 
-std::string buttons [6][4] = {
-	{"", "", "", ""}, // empty top-left corner
-	{"AC", "(",")","/"},
-	{"7", "8", "9", "*"},
-	{"4", "5", "6", "-"},
-	{"1", "2", "3", "+"},
-	{".", "0", "DEL", "="}
+Button buttons [6][4] = {
+	{{"", {0xA9, 0xA9, 0xA9, 0xFF}, false}, {"", {0xA9, 0xA9, 0xA9, 0xFF}, false}, {"", {0xA9, 0xA9, 0xA9, 0xFF}, false}, {"", {0xA9, 0xA9, 0xA9, 0xFF}, false}}, // empty first row
+	{{"AC", {0xFF, 0xA5, 0xFF, 0xFF}, true}, {"(", {0xA5, 0xA5, 0xA5, 0xFF}, false}, {")", {0xA5, 0xA5, 0xA5, 0xFF}, false}, {"/", {0xA5, 0xA5, 0xA5, 0xFF}, false}},
+	{{"7", {0x00, 0x00, 0xFF, 0xFF}, false}, {"8", {0x00, 0x00, 0xFF, 0xFF}, false}, {"9", {0x00, 0x00, 0xFF, 0xFF}, false}, {"*", {0xA5, 0xA5, 0xA5, 0xFF}, false}},
+	{{"4", {0x00, 0x00, 0xFF, 0xFF}, false}, {"5", {0x00, 0x00, 0xFF, 0xFF}, false}, {"6", {0x00, 0x00, 0xFF, 0xFF}, false}, {"-", {0xA5, 0xA5, 0xA5, 0xFF}, false}},
+	{{"1", {0x00, 0x00, 0xFF, 0xFF}, false}, {"2", {0x00, 0x00, 0xFF, 0xFF}, false}, {"3", {0x00, 0x00, 0xFF, 0xFF}, false}, {"+", {0xA5, 0xA5, 0xA5, 0xFF}, false}},
+	{{".", {0xA5, 0xA5, 0xFF, 0xFF}, false}, {"0", {0x00, 0x00, 0xFF, 0xFF}, false}, {"DEL", {0xA5, 0x00, 0x00, 0xFF}, true}, {"=", {0xA5, 0xFF, 0xFF, 0xFF}, true}}
 };
 
 int main()
@@ -129,12 +138,16 @@ void drawLayout()
 		buttonRect.y = boardTopY + buttonHeight * row;
 		for (int col = 0; col < lWidth; col++)
 		{
+			int gridIdx { (row * (4)) + col + 1 };
+
 			buttonRect.x = boardTopX + buttonWidth * col;
 
-			if (row == 0) // top row different color
-				SDL_SetRenderDrawColor(gRenderer, 0xA9, 0xA9, 0xA9, 0xFF); // dark gray (board background)
-			else
-				SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0xFF, 0xFF);
+			SDL_SetRenderDrawColor(gRenderer,
+				buttons[row][col].rgba[0],
+				buttons[row][col].rgba[1],
+				buttons[row][col].rgba[2],
+				buttons[row][col].rgba[3]
+			);
 
 			SDL_RenderFillRect(gRenderer, &buttonRect);
 
@@ -142,9 +155,7 @@ void drawLayout()
 			SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0x00, 0xFF); // dark gray
 			//SDL_SetRenderScale(gRenderer, 3.5f, 3.5f);
 
-			int gridIdx { (row * (4)) + col + 1 };
-
-			std::string button { buttons[row][col] };
+			std::string button { buttons[row][col].label };
 			int buttonLen { (int)button.length() };
 
 			SDL_RenderDebugText(
@@ -167,7 +178,8 @@ void drawLayout()
 				int row { (int)((mouseY - (screenHeight)) / buttonHeight) };
 				int col { (int)(mouseX / buttonWidth) };
 
-				screenOutput = buttons[row][col];
+				if (!buttons[row][col].special)
+					screenOutput = buttons[row][col].label;
 			}
 		}
 		mouseLClicked = false;
