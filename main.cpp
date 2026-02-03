@@ -4,6 +4,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <string>
+#include <vector>
 
 /* Types */
 typedef struct {
@@ -17,9 +18,15 @@ typedef struct {
 bool init();
 
 bool key_events();
+void calculatorOperations();
 
 void draw();
 void drawLayout();
+void drawLayoutScreen();
+void drawLayoutBoard();
+
+std::string evaluate(std::string expression);
+float evaluateHelper(const std::string opLeft, char op, const std::string opRight);
 
 void close();
 
@@ -28,6 +35,22 @@ void close();
 constexpr int kScreenHeight{ 518 };
 constexpr int kScreenWidth{ 320 };
 
+//screen
+float startX { 0 };
+float startY { 0 };
+
+float screenHeight { kScreenHeight * 0.25f };
+float screenWidth { kScreenWidth };
+
+//board
+float boardTopY { screenHeight };
+float boardTopX { startX };
+
+float boardHeight { kScreenHeight * 0.75f };
+float boardWidth { kScreenWidth };
+
+float buttonHeight { boardHeight * 0.1667f };
+float buttonWidth { boardWidth * 0.25f };
 
 /* Global Variables */
 //The window we'll be rendering to
@@ -41,7 +64,11 @@ SDL_Renderer* gRenderer{ nullptr };
 float mouseX {}, mouseY {};
 bool mouseLClicked { false };
 
-std::string screenOutput { "00000" };
+/* output */
+bool evaluated { false };
+
+std::string screenOutput { "" };
+std::string evalExpr { "" };
 
 // button layout
 int lWidth {4}, lHeight {6};
@@ -61,7 +88,10 @@ int main()
 		return 1;
 
 	while (key_events())
+	{
 		draw();
+		calculatorOperations();
+	}
 
 	close();
 
@@ -97,13 +127,14 @@ void drawLayout()
 		|			|
 		-------------
 	*/
-	//screen
-	float startX { 0 };
-	float startY { 0 };
 
-	float screenHeight { kScreenHeight * 0.25f };
-	float screenWidth { kScreenWidth };
+	drawLayoutScreen();
 
+	drawLayoutBoard();
+}
+
+void drawLayoutScreen()
+{
 	SDL_FRect screenRect { startX, startY, screenWidth, screenHeight };
 
 	SDL_SetRenderDrawColor(gRenderer, 0xD3, 0xD3, 0xD3, 0xFF); // light gray
@@ -115,16 +146,10 @@ void drawLayout()
     SDL_RenderDebugText(gRenderer, 10, 20, screenOutput.c_str());
 
 	SDL_SetRenderScale(gRenderer, 1.0f, 1.0f); // reset scale
-	//board
-	float boardTopY { startY = screenHeight };
-	float boardTopX { startX };
+}
 
-	float boardHeight { kScreenHeight * 0.75f };
-	float boardWidth { kScreenWidth };
-
-	float buttonHeight { boardHeight * 0.1667f };
-	float buttonWidth { boardWidth * 0.25f };
-
+void drawLayoutBoard()
+{
 	SDL_FRect boardRect { boardTopX, boardTopY, boardWidth, boardHeight };
 
 	SDL_SetRenderDrawColor(gRenderer, 0xA9, 0xA9, 0xA9, 0xFF); // dark gray (board background)
@@ -168,22 +193,128 @@ void drawLayout()
 		}
 		buttonRect.x = boardTopX;
 	}
+}
 
+void calculatorOperations()
+{
 	//test mouse co-ords
 	if (mouseLClicked) {
+		if (evaluated)
+		{
+			screenOutput = "";
+			evaluated = false;
+		}
+
 		if (mouseX > 0 && mouseX < boardWidth)
 		{
 			if (mouseY > screenHeight && mouseY < kScreenHeight) // full screen width to bottom
 			{
-				int row { (int)((mouseY - (screenHeight)) / buttonHeight) };
+				int row { (int)((mouseY - (screenHeight)) / buttonHeight) }; // convert to board coords
 				int col { (int)(mouseX / buttonWidth) };
 
-				if (!buttons[row][col].special)
-					screenOutput = buttons[row][col].label;
+				Button button { buttons[row][col] };
+
+				if (button.special)
+				{
+					if (button.label == "AC")
+						screenOutput = "";
+					else if (button.label == "DEL")
+					{
+						if (!screenOutput.empty())
+							screenOutput.pop_back();
+					}
+					else if (button.label == "=")
+					{
+						evalExpr = evaluate(screenOutput); // evaluate
+						screenOutput = evalExpr;
+						evaluated = true;
+					}
+				}
+				else
+				{
+					if (button.label != "(" && button.label != ")")
+						screenOutput.push_back(button.label[0]);
+				}
 			}
 		}
 		mouseLClicked = false;
 	}
+}
+
+std::string evaluate(std::string expression)
+{
+	std::string opLeft { "" }, opRight { "" };
+	char currentOp { ' ' };
+	float result { 0.0f };
+
+		int i = 0;
+
+		while (i < expression.length())
+		{
+			char c { expression[i] };
+
+			if (c == '+' || c == '-' || c == '*' || c == '/')
+				break;
+
+			opLeft.push_back(c);
+
+			i++;
+		}
+		
+		result = { std::stof(opLeft) };
+		std::string newPlainBuffer = expression.substr(i);
+
+		for ( char c: newPlainBuffer)
+		{
+			if (c == '+' || c == '-' || c == '*' || c == '/')
+			{
+				if (!opRight.empty())
+				{
+					result = evaluateHelper(std::to_string(result), currentOp, opRight); // check 0 edge case return
+
+					opRight = "";
+					currentOp = c;
+				}
+				else
+				{
+					currentOp = c;
+					continue;
+				}
+			}
+			else
+				opRight.push_back(c);
+				
+		}
+
+	result = evaluateHelper(std::to_string(result), currentOp, opRight); // final op
+
+	//SDL_Log("ANSWER: %f", result);
+	return std::to_string(result);
+
+}
+
+float evaluateHelper(const std::string opLeft, char op, const std::string opRight)
+{
+	SDL_Log("To eval %s %c %s", opLeft.c_str(), op, opRight.c_str());
+
+	switch (op)
+	{
+	case '+':
+		return (std::stof(opLeft) + std::stof(opRight));
+
+	case '-':
+		return (std::stof(opLeft) - std::stof(opRight));
+					
+	case '*':
+		return (std::stof(opLeft) * std::stof(opRight));
+
+	case '/':
+		return (std::stof(opLeft) / std::stof(opRight));
+
+	default:
+		break;
+	}
+	return 0.0f;
 }
 
 bool init()
@@ -215,9 +346,9 @@ bool key_events()
 	{
 		switch (e.type) {
 			case SDL_EVENT_QUIT:
-				return false;
+return false;
 			case SDL_EVENT_MOUSE_BUTTON_UP:
-				SDL_Log("Mouse Pressed");
+				//SDL_Log("Mouse Pressed");
 				if (e.button.button == SDL_BUTTON_LEFT)
 					{
 						SDL_GetMouseState(&mouseX, &mouseY);
