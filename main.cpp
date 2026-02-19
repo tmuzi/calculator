@@ -198,7 +198,8 @@ class Calculator
 					i++;
 				}
 				
-				result = { std::stof(opLeft) };
+				result = { !opLeft.empty() ? std::stof(opLeft) : 0 }; /* update scree accordingly (show the zero on OP press before #0) */
+	
 				std::string newPlainBuffer = expression.substr(i);
 
 				for ( char c: newPlainBuffer)
@@ -225,7 +226,7 @@ class Calculator
 
 			result = evaluateHelper(std::to_string(result), currentOp, opRight); // final op
 
-			//SDL_Log("ANSWER: %f", result);
+			SDL_Log("ANSWER: %f", result);
 			return std::to_string(result);
 
 		}
@@ -246,7 +247,8 @@ class Calculator
 				return (std::stof(opLeft) * std::stof(opRight));
 
 			case '/':
-				return (std::stof(opLeft) / std::stof(opRight));
+				// apparently / by zero is taken care of did it anyways
+				return std::stof(opLeft) == 0 ? 0 : (std::stof(opLeft) / std::stof(opRight));
 
 			default:
 				break;
