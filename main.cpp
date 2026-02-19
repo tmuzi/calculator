@@ -80,7 +80,7 @@ class Calculator
 			//	write to screen
 			SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0x00, 0xFF);
 			SDL_SetRenderScale(gRenderer, 3.5f, 3.5f);
-			SDL_RenderDebugText(gRenderer, 10, 20, screenOutput.c_str());
+			SDL_RenderDebugText(gRenderer, 10, 20, screenOutput.c_str()); /* update screen */
 
 			SDL_SetRenderScale(gRenderer, 1.0f, 1.0f); // reset scale
 		}
@@ -125,7 +125,7 @@ class Calculator
 						(buttonRect.x + buttonWidth / 2) - (4 * buttonLen),
 						(buttonRect.y + buttonHeight / 2) - 4,
 						button.c_str()
-					); // default char dim 8x8 hence -4 to center
+					); // default char dim 8x8 hence -4 to center /* update screen */
 
 				}
 				buttonRect.x = boardTopX;
