@@ -19,20 +19,108 @@ typedef struct {
 constexpr int kScreenHeight{ 518 };
 constexpr int kScreenWidth{ 320 };
 
-/* Global Variables */
-//The window we'll be rendering to
-SDL_Window* gWindow{ nullptr };
-
-//The surface contained by the window
-SDL_Surface* gScreenSurface{ nullptr };
-SDL_Renderer* gRenderer{ nullptr };
-
 // mouse pos
 float mouseX {}, mouseY {};
 bool mouseLClicked { false };
 
 /* output */
 bool evaluated { false };
+
+class SDL_Instance
+{
+	/* Global Variables */
+	//The window we'll be rendering to
+	SDL_Window* gWindow{ nullptr };
+
+	//The surface contained by the window
+	SDL_Surface* gScreenSurface{ nullptr };
+	SDL_Renderer* gRenderer{ nullptr };
+
+	public:
+		bool init()
+		{
+
+			if (SDL_Init(SDL_INIT_VIDEO) == false)
+			{
+				SDL_Log("SDL could not initialize! SDL error: %s\n", SDL_GetError());
+
+				return false;
+			}
+
+			if (!SDL_CreateWindowAndRenderer("Calculator", kScreenWidth, kScreenHeight, 0, &gWindow, &gRenderer))
+			{
+				SDL_Log("Window/Renderer could not be created! SDL error: %s\n", SDL_GetError());
+
+				return false;
+			}
+
+			return true;
+		}
+
+		bool key_events()
+		{
+			SDL_Event e;
+
+			while (SDL_PollEvent(&e))
+			{
+				switch (e.type) {
+					case SDL_EVENT_QUIT:
+						return false;
+					case SDL_EVENT_MOUSE_BUTTON_UP:
+						//SDL_Log("Mouse Pressed");
+						if (e.button.button == SDL_BUTTON_LEFT)
+							{
+								SDL_GetMouseState(&mouseX, &mouseY);
+								mouseLClicked = true;
+							}
+				}
+			}
+			return true;
+		}
+
+		void close()
+	{
+
+		//Destroy window
+		SDL_DestroyWindow( gWindow );
+		gWindow = nullptr;
+		gScreenSurface = nullptr;
+
+		//Quit SDL subsystems
+		SDL_Quit();
+	}
+
+		// helper functions
+		void clearBg(std::vector<int> hexArr)
+		{
+			SDL_SetRenderDrawColor(gRenderer, hexArr[0], hexArr[1], hexArr[2], hexArr[3]);
+			SDL_RenderClear(gRenderer);
+		}
+
+		void drawRect(std::vector<int> hexArr, SDL_FRect& screenRect)
+		{
+			SDL_SetRenderDrawColor(gRenderer, hexArr[0], hexArr[1], hexArr[2], hexArr[3]); // light gray
+			SDL_RenderFillRect(gRenderer, &screenRect);/*neccessary to use &?*/
+		}
+
+		void drawText(std::vector<int> hexArr, std::string screenOutput)
+		{
+			SDL_SetRenderDrawColor(gRenderer, hexArr[0], hexArr[1], hexArr[2], hexArr[3]);
+			SDL_SetRenderScale(gRenderer, 3.5f, 3.5f);
+			SDL_RenderDebugText(gRenderer, 10, 20, screenOutput.c_str()); /* update screen */
+
+			SDL_SetRenderScale(gRenderer, 1.0f, 1.0f); // reset scale
+		}
+
+		void setCustomColorT(std::vector<int> hexArr) { SDL_SetRenderDrawColor(gRenderer, hexArr[0], hexArr[1], hexArr[2], hexArr[3]); };
+
+		void drawCleanTextT(std::vector<float> posArr, std::string output)
+		{
+			SDL_RenderDebugText(gRenderer, posArr[0], posArr[1], output.c_str()); /* update screen */
+		}
+
+		void present() { SDL_RenderPresent(gRenderer); }
+};
 
 class Calculator
 {
@@ -70,27 +158,21 @@ class Calculator
 		};
 
 				
-		void drawLayoutScreen()
+		void drawLayoutScreen(SDL_Instance mySdl)
 		{
 			SDL_FRect screenRect { startX, startY, screenWidth, screenHeight };
 
-			SDL_SetRenderDrawColor(gRenderer, 0xD3, 0xD3, 0xD3, 0xFF); // light gray
-			SDL_RenderFillRect(gRenderer, &screenRect);
+			mySdl.drawRect({0xD3, 0xD3, 0xD3, 0xFF}, screenRect);
 
 			//	write to screen
-			SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0x00, 0xFF);
-			SDL_SetRenderScale(gRenderer, 3.5f, 3.5f);
-			SDL_RenderDebugText(gRenderer, 10, 20, screenOutput.c_str()); /* update screen */
-
-			SDL_SetRenderScale(gRenderer, 1.0f, 1.0f); // reset scale
+			mySdl.drawText({0x00, 0x00, 0x00, 0xFF}, screenOutput);
 		}
 
-		void drawLayoutBoard()
+		void drawLayoutBoard(SDL_Instance mySdl)
 		{
 			SDL_FRect boardRect { boardTopX, boardTopY, boardWidth, boardHeight };
 
-			SDL_SetRenderDrawColor(gRenderer, 0xA9, 0xA9, 0xA9, 0xFF); // dark gray (board background)
-			SDL_RenderFillRect(gRenderer, &boardRect);
+			mySdl.drawRect({0xA9, 0xA9, 0xA9, 0xFF}, boardRect); // dark gray (board background)
 
 			//buttons
 			SDL_FRect buttonRect { boardTopY, boardTopY, buttonWidth - 1.0f, buttonHeight - 1.0f }; // button with gap
@@ -104,26 +186,29 @@ class Calculator
 
 					buttonRect.x = boardTopX + buttonWidth * col;
 
-					SDL_SetRenderDrawColor(gRenderer,
-						buttons[row][col].rgba[0],
-						buttons[row][col].rgba[1],
-						buttons[row][col].rgba[2],
-						buttons[row][col].rgba[3]
+					mySdl.drawRect(
+						
+						{
+							buttons[row][col].rgba[0],
+							buttons[row][col].rgba[1],
+							buttons[row][col].rgba[2],
+							buttons[row][col].rgba[3]
+						},
+						buttonRect
 					);
 
-					SDL_RenderFillRect(gRenderer, &buttonRect);
-
 					//	write to button
-					SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0x00, 0xFF); // dark gray
+					mySdl.setCustomColorT({0x00, 0x00, 0x00, 0xFF}); // dark gray
 					//SDL_SetRenderScale(gRenderer, 3.5f, 3.5f);
 
 					std::string button { buttons[row][col].label };
 					int buttonLen { (int)button.length() };
 
-					SDL_RenderDebugText(
-						gRenderer,
-						(buttonRect.x + buttonWidth / 2) - (4 * buttonLen),
-						(buttonRect.y + buttonHeight / 2) - 4,
+					mySdl.drawCleanTextT(
+						{
+							(buttonRect.x + buttonWidth / 2) - (4 * buttonLen),
+							(buttonRect.y + buttonHeight / 2) - 4
+						},
 						button.c_str()
 					); // default char dim 8x8 hence -4 to center /* update screen */
 
@@ -257,112 +342,47 @@ class Calculator
 		}
 };
 
-/* Function Prototypes */
-bool init();
-
-bool key_events();
-void draw(Calculator calculator);
-
-void close();
 
 int main()
 {
 	Calculator calculator;
+	SDL_Instance mySdl;
 
-	if (!init())
+	if (!mySdl.init())
 		return 1;
 
-	while (key_events())
+	while (mySdl.key_events())
 	{
-		draw(calculator);
+		//Fill the surface white
+		mySdl.clearBg({0xFF, 0xFF, 0xFF, 0xFF});
+
+		/*
+			layout:
+
+			screen 25%:
+			-------------
+			|			|
+			|			|
+			board 75%:
+			|			|
+			|			|
+			|			|
+			|			|
+			|			|
+			|			|
+			-------------
+		*/
+
+		calculator.drawLayoutScreen(mySdl);
+
+		calculator.drawLayoutBoard(mySdl);
+
+		mySdl.present();
 		calculator.calculatorOperations();
 	}
 
-	close();
+	mySdl.close();
 
 	return 0;
 }
 
-void draw(Calculator calculator)
-{
-	//Fill the surface white
-	SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
-	SDL_RenderClear(gRenderer);
-
-	/*
-		layout:
-
-		screen 25%:
-		-------------
-		|			|
-		|			|
-		board 75%:
-		|			|
-		|			|
-		|			|
-		|			|
-		|			|
-		|			|
-		-------------
-	*/
-
-	calculator.drawLayoutScreen();
-
-	calculator.drawLayoutBoard();
-
-	SDL_RenderPresent(gRenderer);
-}
-
-bool init()
-{
-
-
-	if (SDL_Init(SDL_INIT_VIDEO) == false)
-	{
-		SDL_Log("SDL could not initialize! SDL error: %s\n", SDL_GetError());
-
-		return false;
-	}
-
-	if (!SDL_CreateWindowAndRenderer("Calculator", kScreenWidth, kScreenHeight, 0, &gWindow, &gRenderer))
-	{
-		SDL_Log("Window/Renderer could not be created! SDL error: %s\n", SDL_GetError());
-
-		return false;
-    }
-
-	return true;
-}
-
-bool key_events()
-{
-	SDL_Event e;
-
-	while (SDL_PollEvent(&e))
-	{
-		switch (e.type) {
-			case SDL_EVENT_QUIT:
-return false;
-			case SDL_EVENT_MOUSE_BUTTON_UP:
-				//SDL_Log("Mouse Pressed");
-				if (e.button.button == SDL_BUTTON_LEFT)
-					{
-						SDL_GetMouseState(&mouseX, &mouseY);
-						mouseLClicked = true;
-					}
-		}
-	}
-	return true;
-}
-
-void close()
-{
-
-	//Destroy window
-	SDL_DestroyWindow( gWindow );
-	gWindow = nullptr;
-	gScreenSurface = nullptr;
-
-	//Quit SDL subsystems
-	SDL_Quit();
-}
